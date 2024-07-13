@@ -13,10 +13,17 @@ namespace SudokuAPI.Data.Handlers
 
         public sealed class Handler : IHandler<Request, List<List<int>>>
         {
+            private readonly SudokuGame _game;
+
+            public Handler(SudokuGame game)
+            {
+                _game = game;
+            }
+
             public Task<List<List<int>>> Handle(Request request)
             {
-                var game = new SudokuGame();
-                return Task.FromResult(game.GetBoardAsList());
+                _game.ResetGame();
+                return Task.FromResult(_game.GetBoardAsList());
             }
         }
     }

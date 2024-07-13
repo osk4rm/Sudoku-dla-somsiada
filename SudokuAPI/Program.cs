@@ -12,12 +12,25 @@ builder.Services.AddSingleton<IMediator, Mediator>();
 builder.Services.AddSingleton<IGameObserver, GameObserver>();
 builder.Services.AddSingleton<SudokuGame>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:8080")
+                   .AllowAnyMethod()
+                   .AllowAnyHeader()
+                   .AllowCredentials();
+        });
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors("AllowLocalhost");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -34,7 +47,7 @@ var game = app.Services.GetRequiredService<SudokuGame>();
 
 game.AddObserver(observer);
 
-var generateHandler = new GenerateNewGame.Handler();
+var generateHandler = new GenerateNewGame.Handler(game);
 var checkHandler = new CheckNumberRequest.Handler(game, observer);
 mediator.Register(generateHandler);
 mediator.Register(checkHandler);
@@ -50,9 +63,9 @@ app.MapPost("/generate", async () =>
 })
     .WithOpenApi();
 
-app.MapPost("/check", async (int row, int col, int number) =>
+app.MapPost("/check", async (CheckNumberModel model) =>
 {
-    var request = new CheckNumberRequest.Request(row, col, number);
+    var request = new CheckNumberRequest.Request(model.Row, model.Col, model.Number);
     var result = await mediator.Send<CheckNumberRequest.Request, CheckResultModel>(request);
 
     return Results.Ok(result);
