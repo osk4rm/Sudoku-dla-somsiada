@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using SudokuAPI.Data;
 using SudokuAPI.Data.Handlers;
 using SudokuAPI.Data.Mediator;
+using SudokuAPI.Data.Models;
 using SudokuAPI.Data.Observers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,7 +35,7 @@ var game = app.Services.GetRequiredService<SudokuGame>();
 game.AddObserver(observer);
 
 var generateHandler = new GenerateNewGame.Handler();
-var checkHandler = new CheckNumberRequest.Handler(game);
+var checkHandler = new CheckNumberRequest.Handler(game, observer);
 mediator.Register(generateHandler);
 mediator.Register(checkHandler);
 
@@ -43,7 +44,7 @@ app.MapPost("/generate", async () =>
     var request = new GenerateNewGame.Request();
     var result = await mediator.Send<GenerateNewGame.Request, List<List<int>>>(request);
 
-    observer.Notify("new game generated");
+    observer.Notify(false);
 
     return Results.Ok(result);
 })
@@ -52,7 +53,7 @@ app.MapPost("/generate", async () =>
 app.MapPost("/check", async (int row, int col, int number) =>
 {
     var request = new CheckNumberRequest.Request(row, col, number);
-    var result = await mediator.Send<CheckNumberRequest.Request, bool>(request);
+    var result = await mediator.Send<CheckNumberRequest.Request, CheckResultModel>(request);
 
     return Results.Ok(result);
 })
@@ -60,7 +61,3 @@ app.MapPost("/check", async (int row, int col, int number) =>
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

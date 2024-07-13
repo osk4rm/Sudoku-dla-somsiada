@@ -8,6 +8,7 @@ namespace SudokuAPI.Data.Observers
 {
     public interface IGameObserver
     {
+        public bool IsGameFinished { get; }
         void Notify(bool isGameFinished);
     }
 
