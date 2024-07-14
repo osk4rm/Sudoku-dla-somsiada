@@ -4,6 +4,9 @@ using SudokuAPI.Data.Handlers;
 using SudokuAPI.Data.Mediator;
 using SudokuAPI.Data.Models;
 using SudokuAPI.Data.Observers;
+using SudokuAPI.Data.Utils;
+using SudokuAPI.Extensions;
+using SudokuAPI.Requests;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<IMediator, Mediator>();
 builder.Services.AddSingleton<IGameObserver, GameObserver>();
 builder.Services.AddSingleton<SudokuGame>();
+builder.Services.AddTransient<ISudokuGenerator, SudokuGenerator>();
 
 builder.Services.AddCors(options =>
 {
@@ -41,36 +45,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var mediator = app.Services.GetRequiredService<IMediator>();
-var observer = app.Services.GetRequiredService<IGameObserver>();
-var game = app.Services.GetRequiredService<SudokuGame>();
-
-game.AddObserver(observer);
-
-var generateHandler = new GenerateNewGame.Handler(game);
-var checkHandler = new CheckNumberRequest.Handler(game, observer);
-mediator.Register(generateHandler);
-mediator.Register(checkHandler);
-
-app.MapPost("/generate", async () =>
-{
-    var request = new GenerateNewGame.Request();
-    var result = await mediator.Send<GenerateNewGame.Request, List<List<int>>>(request);
-
-    observer.Notify(false);
-
-    return Results.Ok(result);
-})
-    .WithOpenApi();
-
-app.MapPost("/check", async (CheckNumberModel model) =>
-{
-    var request = new CheckNumberRequest.Request(model.Row, model.Col, model.Number);
-    var result = await mediator.Send<CheckNumberRequest.Request, CheckResultModel>(request);
-
-    return Results.Ok(result);
-})
-    .WithOpenApi();
+app.RegisterObservers();
+app.RegisterHandlers();
+app.RegisterSudokuEndpoints();
 
 app.Run();
 
